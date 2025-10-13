@@ -8,6 +8,8 @@ const API_KEY = "5030d5694f2052684814e835d85ff0ef"; // Get it from https://openw
 
 app.use(cors());
 
+// Weather API route
+
 app.get("/weather", async (req, res) => {
   const city = req.query.city || "Delhi";
   const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${API_KEY}`;
@@ -17,6 +19,21 @@ app.get("/weather", async (req, res) => {
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch weather data" });
+  }
+});
+
+// City Search Suggestions route
+app.get("/search", async (req, res) => {
+  const query = req.query.query;
+  if (!query) return res.json([]);
+
+  const url = `https://api.openweathermap.org/geo/1.0/direct?q=${query}&limit=5&appid=${API_KEY}`;
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch city suggestions" });
   }
 });
 
