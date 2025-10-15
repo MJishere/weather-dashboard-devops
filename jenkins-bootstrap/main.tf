@@ -114,7 +114,7 @@ resource "aws_instance" "jenkins" {
   ami                         = var.jenkins_ami
   instance_type               = var.jenkins_instance_type
   subnet_id                   = local.jenkins_subnet_id
-  vpc_security_group_ids = [aws_security_group.jenkins_sg.id]
+  vpc_security_group_ids      = [aws_security_group.jenkins_sg.id]
   iam_instance_profile        = aws_iam_instance_profile.jenkins_instance_profile.name
   user_data                   = templatefile("${path.module}/user_data.tpl", { volume_id = aws_ebs_volume.jenkins_volume.id })
   associate_public_ip_address = true
