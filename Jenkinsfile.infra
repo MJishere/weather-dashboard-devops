@@ -1,0 +1,50 @@
+pipeline{
+    agent any
+
+    environment{
+        AWS_DEFAULT_REGION = 'us-east-1'
+        TF_WORKDIR = 'infra'
+    }
+
+    stages{
+        stage("Checkout"){
+            steps{
+                checkout scm
+            }
+        }
+
+        stage("Terraform Init"){
+            steps{
+                dir("${TF_WORKDIR}"){
+                    sh '''
+                        terraform init -input=false -no-color
+                        terraform plan -input=false -no-color -out=tfplan
+                    '''
+                }
+
+            }
+        }
+
+        stage("Terraform Apply"){
+            steps{
+                script{
+                    //Manual Approval
+                    input message: "Apply infrastructure changes?", ok: "Apply"
+                }
+                dir("${TF_WORKDIR}"){
+                    sh '''
+                        terraform apply -input=false -auto-approve tfplan
+                    '''
+                }
+            }
+        }
+    }
+    post{
+        success{
+            echo "Infrastructure created successfully!"
+        }
+        failure{
+            echo "Terraform apply failed!"
+        }
+    }
+}
