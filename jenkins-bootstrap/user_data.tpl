@@ -4,7 +4,6 @@
 # -------------------------------------------
 yum update -y
 
-
 # -------------------------------------------
 # Install Docker
 # -------------------------------------------
@@ -23,7 +22,7 @@ systemctl enable docker
 usermod -aG docker ec2-user
 
 # -------------------------------------------
-# Mount EBS volume
+# Mount EBS volume for Jenkins
 # -------------------------------------------
 if ! blkid /dev/xvdf; then
     mkfs -t ext4 /dev/xvdf
@@ -33,30 +32,10 @@ mkdir -p /var/jenkins_home
 mount /dev/xvdf /var/jenkins_home
 chown -R 1000:1000 /var/jenkins_home
 
-
-# ---------------------------
+# -------------------------------------------
 # Install Git (needed for Jenkins pipelines)
-# ---------------------------
+# -------------------------------------------
 yum install -y git
-
-
-# ---------------------------
-# Install Terraform (HashiCorp repo for Amazon Linux)
-# ---------------------------
-dnf install -y dnf-plugins-core || true
-dnf config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo || true
-dnf -y install terraform || true
-
-
-# ---------------------------
-# Install kubectl (official Kubernetes method with SHA verification)
-# ---------------------------
-curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
-echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
-sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
-kubectl version --client || true
-
 
 # -------------------------------------------
 # Run Jenkins container
@@ -70,3 +49,27 @@ docker run -d --name jenkins \
 # Ensure Docker container restarts on reboot
 # -------------------------------------------
 docker update --restart=always jenkins
+
+# -------------------------------------------
+# Install Terraform + kubectl inside Jenkins container
+# -------------------------------------------
+
+# Wait for Jenkins container to fully start
+sleep 20
+
+# -------------------------------------------
+# Install Terraform + kubectl inside Jenkins container
+# -------------------------------------------
+docker exec -u 0 jenkins bash -c "
+  apt-get update &&
+  apt-get install -y gnupg curl wget unzip git bash &&
+  wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor > /usr/share/keyrings/hashicorp-archive-keyring.gpg &&
+  echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com trixie main' > /etc/apt/sources.list.d/hashicorp.list &&
+  apt-get update &&
+  apt-get install -y terraform &&
+  terraform -version &&
+  # Install kubectl
+  curl -LO https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl &&
+  install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl &&
+  kubectl version --client
+"
