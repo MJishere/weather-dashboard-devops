@@ -13,28 +13,32 @@ pipeline{
             }
         }
 
-        stage("Terraform Init"){
-            steps{
-                dir("${TF_WORKDIR}"){
-                    sh '''
-                        terraform init -input=false -no-color
-                        terraform plan -input=false -no-color -out=tfplan
-                    '''
+        stage("Terraform Init and plan"){
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', 
+                                  credentialsId: 'aws-devops-creds']]) {
+                    dir("${TF_WORKDIR}") {
+                        sh '''
+                            terraform init -input=false -no-color
+                            terraform plan -input=false -no-color -out=tfplan
+                        '''
+                    }
                 }
-
             }
         }
 
         stage("Terraform Apply"){
-            steps{
-                script{
-                    //Manual Approval
+            steps {
+                script {
                     input message: "Apply infrastructure changes?", ok: "Apply"
                 }
-                dir("${TF_WORKDIR}"){
-                    sh '''
-                        terraform apply -input=false -auto-approve tfplan
-                    '''
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', 
+                                  credentialsId: 'aws-devops-creds']]) {
+                    dir("${TF_WORKDIR}") {
+                        sh '''
+                            terraform apply -input=false -auto-approve tfplan
+                        '''
+                    }
                 }
             }
         }
