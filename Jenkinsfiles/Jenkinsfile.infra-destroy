@@ -1,0 +1,48 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_DEFAULT_REGION = 'us-east-1'
+        TF_WORKDIR = 'infra'
+    }
+
+    stages {
+        stage("Checkout") {
+            steps {
+                // SCM checkout automatically handled by Jenkins when using "Pipeline script from SCM"
+                echo "Jenkinsfile checked out from SCM"
+            }
+        }
+
+        stage("Approve Destroy") {
+            steps {
+                script {
+                    // Manual approval step
+                    input message: "Do you really want to destroy the infrastructure?", ok: "Yes, Destroy"
+                }
+            }
+        }
+
+        stage("Terraform Destroy") {
+            steps {
+                dir("${TF_WORKDIR}") {
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-devops-creds']]) {
+                        sh '''
+                            terraform init -input=false -no-color
+                            terraform destroy -auto-approve
+                        '''
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Infrastructure destroyed successfully!"
+        }
+        failure {
+            echo "Terraform destroy failed!"
+        }
+    }
+}
