@@ -15,8 +15,7 @@ pipeline{
 
         stage("Terraform Init and plan"){
             steps {
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', 
-                                  credentialsId: 'aws-devops-creds']]) {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-devops-creds']]) {
                     dir("${TF_WORKDIR}") {
                         sh '''
                             terraform init -input=false -no-color
@@ -32,8 +31,7 @@ pipeline{
                 script {
                     input message: "Apply infrastructure changes?", ok: "Apply"
                 }
-                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', 
-                                  credentialsId: 'aws-devops-creds']]) {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-devops-creds']]) {
                     dir("${TF_WORKDIR}") {
                         sh '''
                             terraform apply -input=false -auto-approve tfplan
