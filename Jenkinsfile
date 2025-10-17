@@ -37,16 +37,26 @@ pipeline {
       steps {
         withCredentials([[ $class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-devops-creds' ]]) {
           script {
+            // Get AWS account ID
             def accountId = sh(script: "aws sts get-caller-identity --query 'Account' --output text", returnStdout: true).trim()
+
+            // Generate unique image tag based on short Git commit hash
+            def buildTag = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+            env.BUILD_TAG = buildTag  // save for Deploy stage
+
+            // Login to ECR
             sh """
               aws ecr get-login-password --region ${AWS_REGION} | \
                 docker login --username AWS --password-stdin ${accountId}.dkr.ecr.${AWS_REGION}.amazonaws.com
+            """
 
-              docker tag ${ECR_BACKEND}:latest ${accountId}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_BACKEND}:latest
-              docker tag ${ECR_FRONTEND}:latest ${accountId}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_FRONTEND}:latest
+            // Tag images with unique buildTag
+            sh """
+              docker tag ${ECR_BACKEND}:latest ${accountId}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_BACKEND}:${buildTag}
+              docker tag ${ECR_FRONTEND}:latest ${accountId}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_FRONTEND}:${buildTag}
 
-              docker push ${accountId}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_BACKEND}:latest
-              docker push ${accountId}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_FRONTEND}:latest
+              docker push ${accountId}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_BACKEND}:${buildTag}
+              docker push ${accountId}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_FRONTEND}:${buildTag}
             """
           }
         }
@@ -83,19 +93,23 @@ pipeline {
               "k8s/frontend-service.yaml"
             ]
     
-            // Apply all YAML files
+            // Apply all YAML files with updated AWS account ID and region
             for (file in k8sFiles) {
               sh """
                 sed -i 's|<AWS_ACCOUNT_ID>|${AWS_ACCOUNT_ID}|g' $file
                 sed -i 's|\\\${AWS_REGION}|${AWS_REGION}|g' $file
-                kubectl apply -f $file
               """
             }
+
+            // 🟢 Update deployments with the new image tag so pods rollout automatically
+            sh """
+              kubectl set image deployment/backend backend=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_BACKEND}:${BUILD_TAG} --record
+              kubectl set image deployment/frontend frontend=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_FRONTEND}:${BUILD_TAG} --record
+            """
           }
         }
       }
     }
-
 
     stage('Docker Cleanup') {
       steps { 
