@@ -27,7 +27,7 @@ pipeline {
         withCredentials([string(credentialsId: 'OPENWEATHER_API_KEY', variable: 'OPENWEATHER_API_KEY')]) {
           sh """
             docker build --build-arg OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY} -t ${ECR_BACKEND}:latest ./backend
-            docker build --build-arg VITE_API_URL=http://backend-service:5000 -t ${ECR_FRONTEND}:latest ./frontend
+            docker build --build-arg VITE_API_URL=/api -t ${ECR_FRONTEND}:latest ./frontend
           """
         }
       }
