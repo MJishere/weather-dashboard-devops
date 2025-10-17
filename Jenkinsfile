@@ -57,9 +57,9 @@ pipeline {
       steps {
         withCredentials([[ $class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-devops-creds' ]]) {
           script {
-            // Update kubeconfig using AWS creds
+            // Update kubeconfig using AWS credentials
             sh "aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER}"
-
+    
             // Create Kubernetes secret for OPENWEATHER_API_KEY
             withCredentials([string(credentialsId: 'OPENWEATHER_API_KEY', variable: 'OPENWEATHER_API_KEY')]) {
               sh """
@@ -68,18 +68,25 @@ pipeline {
                   --dry-run=client -o yaml | kubectl apply -f -
               """
             }
-
-            // Apply backend/frontend deployments and services
+    
+            // Get AWS account ID and store in environment variable for global use
+            env.AWS_ACCOUNT_ID = sh(
+              script: "aws sts get-caller-identity --query 'Account' --output text",
+              returnStdout: true
+            ).trim()
+    
+            // List of all Kubernetes YAMLs (deployments + services)
             def k8sFiles = [
               "k8s/backend-deployment.yaml",
               "k8s/frontend-deployment.yaml",
               "k8s/backend-service.yaml",
               "k8s/frontend-service.yaml"
             ]
-
+    
+            // Apply all YAML files
             for (file in k8sFiles) {
               sh """
-                sed -i 's|<AWS_ACCOUNT_ID>|${accountId}|g' $file
+                sed -i 's|<AWS_ACCOUNT_ID>|${AWS_ACCOUNT_ID}|g' $file
                 sed -i 's|\\\${AWS_REGION}|${AWS_REGION}|g' $file
                 kubectl apply -f $file
               """
@@ -88,6 +95,7 @@ pipeline {
         }
       }
     }
+
 
     stage('Docker Cleanup') {
       steps { 
