@@ -74,36 +74,37 @@ pipeline{
 
         stage("Deploy to EKS") {
             steps {
-                withCredentials([string(credentialsId: 'OPENWEATHER_API_KEY', variable: 'OPENWEATHER_API_KEY')]) {
-                    script {
-                        // Set kubeconfig once
-                        sh "aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER_NAME}"
-
-                        // Create or update Kubernetes secret for backend API key
+                script {
+                    // Set kubeconfig using instance role; no AWS keys required
+                    sh "aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER_NAME}"
+        
+                    // Create or update Kubernetes secret for backend API key (wrap only this block with credentials)
+                    withCredentials([string(credentialsId: 'OPENWEATHER_API_KEY', variable: 'OPENWEATHER_API_KEY')]) {
                         sh """
                         kubectl create secret generic openweather-secret \
                             --from-literal=OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY} \
                             --dry-run=client -o yaml | kubectl apply -f -
                         """
-
-                        // Deploy Backend
-                        def accountId = sh(script: "aws sts get-caller-identity --query 'Account' --output text", returnStdout: true).trim()
-                        sh """
-                        sed -i 's|<AWS_ACCOUNT_ID>|${accountId}|g' k8s/backend-deployment.yaml
-                        sed -i 's|\${AWS_REGION}|${AWS_REGION}|g' k8s/backend-deployment.yaml
-                        kubectl apply -f k8s/backend-deployment.yaml
-                        """
-
-                        // Deploy Frontend
-                        sh """
-                        sed -i 's|<AWS_ACCOUNT_ID>|${accountId}|g' k8s/frontend-deployment.yaml
-                        sed -i 's|\${AWS_REGION}|${AWS_REGION}|g' k8s/frontend-deployment.yaml
-                        kubectl apply -f k8s/frontend-deployment.yaml
-                        """
                     }
+        
+                    // Deploy Backend
+                    def accountId = sh(script: "aws sts get-caller-identity --query 'Account' --output text", returnStdout: true).trim()
+                    sh """
+                    sed -i 's|<AWS_ACCOUNT_ID>|${accountId}|g' k8s/backend-deployment.yaml
+                    sed -i 's|\\\${AWS_REGION}|${AWS_REGION}|g' k8s/backend-deployment.yaml
+                    kubectl apply -f k8s/backend-deployment.yaml
+                    """
+        
+                    // Deploy Frontend
+                    sh """
+                    sed -i 's|<AWS_ACCOUNT_ID>|${accountId}|g' k8s/frontend-deployment.yaml
+                    sed -i 's|\\\${AWS_REGION}|${AWS_REGION}|g' k8s/frontend-deployment.yaml
+                    kubectl apply -f k8s/frontend-deployment.yaml
+                    """
                 }
             }
         }
+        
         stage('Docker Cleanup') {
             steps {
                 script {
