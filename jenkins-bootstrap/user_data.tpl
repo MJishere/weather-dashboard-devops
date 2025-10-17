@@ -63,6 +63,7 @@ sleep 20
 # -------------------------------------------
 docker exec -u 0 jenkins bash -c "
   apt-get update &&
+  apt-get install -y docker.io &&
   apt-get install -y gnupg curl wget unzip git bash &&
   wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor > /usr/share/keyrings/hashicorp-archive-keyring.gpg &&
   echo 'deb [arch=amd64 signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com trixie main' > /etc/apt/sources.list.d/hashicorp.list &&

@@ -44,10 +44,13 @@ pipeline{
         stage("Login to AWS ECR"){
             steps{
                 script{
+                    // Get AWS Account ID in Groovy
+                    def accountId = sh(script: "aws sts get-caller-identity --query 'Account' --output text", returnStdout: true).trim()
+                    
+                    // Use the variable safely in shell
                     sh """
                     aws ecr get-login-password --region ${AWS_REGION} | \
-                    docker login --username AWS --password-stdin \
-                    $(aws sts get-caller-identity --query 'Account' --output text).dkr.ecr.${AWS_REGION}.amazonaws.com
+                    docker login --username AWS --password-stdin ${accountId}.dkr.ecr.${AWS_REGION}.amazonaws.com
                     """
                 }
             }
@@ -108,7 +111,7 @@ pipeline{
                 }
             }
         }
-        
+
 
 
     post{
