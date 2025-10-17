@@ -46,7 +46,7 @@ pipeline{
                 script{
                     // Get AWS Account ID in Groovy
                     def accountId = sh(script: "aws sts get-caller-identity --query 'Account' --output text", returnStdout: true).trim()
-                    
+
                     // Use the variable safely in shell
                     sh """
                     aws ecr get-login-password --region ${AWS_REGION} | \
@@ -111,9 +111,7 @@ pipeline{
                 }
             }
         }
-
-
-
+    }
     post{
         success{
             echo "Deployment successful! Application is live"
