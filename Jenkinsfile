@@ -11,6 +11,10 @@ pipeline{
     }
 
     stages {
+        stage('Clean Workspace') {
+            steps { cleanWs() }
+        }
+
         stage("Checkout Code"){
             steps{
                 checkout scm
@@ -71,14 +75,14 @@ pipeline{
                     script {
                         // Set kubeconfig once
                         sh "aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER_NAME}"
-        
+
                         // Create or update Kubernetes secret for backend API key
                         sh """
                         kubectl create secret generic openweather-secret \
                             --from-literal=OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY} \
                             --dry-run=client -o yaml | kubectl apply -f -
                         """
-        
+
                         // Deploy Backend
                         def accountId = sh(script: "aws sts get-caller-identity --query 'Account' --output text", returnStdout: true).trim()
                         sh """
@@ -86,7 +90,7 @@ pipeline{
                         sed -i 's|\${AWS_REGION}|${AWS_REGION}|g' k8s/backend-deployment.yaml
                         kubectl apply -f k8s/backend-deployment.yaml
                         """
-        
+
                         // Deploy Frontend
                         sh """
                         sed -i 's|<AWS_ACCOUNT_ID>|${accountId}|g' k8s/frontend-deployment.yaml
@@ -97,7 +101,15 @@ pipeline{
                 }
             }
         }
+        stage('Docker Cleanup') {
+            steps {
+                script {
+                    sh 'docker system prune -af'
+                }
+            }
+        }
         
+
 
     post{
         success{
