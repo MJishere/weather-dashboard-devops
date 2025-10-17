@@ -14,7 +14,7 @@ function App() {
       return;
     }
     // const res = await fetch(`http://localhost:5000/search?query=${query}`);
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/search?query=${query}`);
+    const res = await fetch(`/api/search?query=${query}`);
     const data = await res.json();
     setSuggestions(data);
   };
@@ -23,7 +23,7 @@ function App() {
   const getWeather = async (selectedCity) => {
     const cityName = selectedCity || city;
     // const res = await fetch(`http://localhost:5000/weather?city=${cityName}`);
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/weather?city=${cityName}`);
+    const res = await fetch(`/api/weather?city=${cityName}`);
     const data = await res.json();
     setWeather(data);
     setSuggestions([]); // hide suggestions
