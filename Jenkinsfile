@@ -10,15 +10,20 @@ pipeline {
 
   stages {
     stage('Clean Workspace') {
-      steps { cleanWs() }
+      steps { 
+        cleanWs() 
+      }
     }
 
     stage('Checkout Code') {
-      steps { checkout scm }
+      steps { 
+        checkout scm 
+      }
     }
 
     stage('Build Docker Images') {
       steps {
+        // Pass OPENWEATHER_API_KEY to backend build, backend URL to frontend build
         withCredentials([string(credentialsId: 'OPENWEATHER_API_KEY', variable: 'OPENWEATHER_API_KEY')]) {
           sh """
             docker build --build-arg OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY} -t ${ECR_BACKEND}:latest ./backend
@@ -55,7 +60,7 @@ pipeline {
             // Update kubeconfig using AWS creds
             sh "aws eks update-kubeconfig --region ${AWS_REGION} --name ${EKS_CLUSTER}"
 
-            // Only this block needs OpenWeather API secret
+            // Create Kubernetes secret for OPENWEATHER_API_KEY
             withCredentials([string(credentialsId: 'OPENWEATHER_API_KEY', variable: 'OPENWEATHER_API_KEY')]) {
               sh """
                 kubectl create secret generic openweather-secret \
@@ -64,27 +69,39 @@ pipeline {
               """
             }
 
-            // Deploy backend and frontend
-            def accountId = sh(script: "aws sts get-caller-identity --query 'Account' --output text", returnStdout: true).trim()
-            sh """
-              for file in k8s/backend-deployment.yaml k8s/frontend-deployment.yaml; do
-                sed -i 's|<AWS_ACCOUNT_ID>|${accountId}|g' \$file
-                sed -i 's|\\\${AWS_REGION}|${AWS_REGION}|g' \$file
-                kubectl apply -f \$file
-              done
-            """
+            // Apply backend/frontend deployments and services
+            def k8sFiles = [
+              "k8s/backend-deployment.yaml",
+              "k8s/frontend-deployment.yaml",
+              "k8s/backend-service.yaml",
+              "k8s/frontend-service.yaml"
+            ]
+
+            for (file in k8sFiles) {
+              sh """
+                sed -i 's|<AWS_ACCOUNT_ID>|${accountId}|g' $file
+                sed -i 's|\\\${AWS_REGION}|${AWS_REGION}|g' $file
+                kubectl apply -f $file
+              """
+            }
           }
         }
       }
     }
 
     stage('Docker Cleanup') {
-      steps { sh 'docker system prune -af' }
+      steps { 
+        sh 'docker system prune -af' 
+      }
     }
   }
 
   post {
-    success { echo "✅ Deployment successful!" }
-    failure { echo "❌ Deployment failed. Check console output." }
+    success { 
+      echo "✅ Deployment successful!" 
+    }
+    failure { 
+      echo "❌ Deployment failed. Check console output." 
+    }
   }
 }
