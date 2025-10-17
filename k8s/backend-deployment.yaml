@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: <AWS_ACCOUNT_ID>.dkr.ecr.${AWS_REGION}.amazonaws.com/weather_dashboard_backend:latest
+          ports:
+            - containerPort: 5000
+          env:
+            - name: OPENWEATHER_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openweather-secret
+                  key: OPENWEATHER_API_KEY
