@@ -3,8 +3,8 @@ import fetch from "node-fetch";
 import cors from "cors";
 
 const app = express();
-const PORT = 5000;
-const API_KEY = "5030d5694f2052684814e835d85ff0ef"; // Get it from https://openweathermap.org/api
+const PORT = process.env.PORT || 5000;
+const API_KEY = process.env.OPENWEATHER_API_KEY; // Get it from https://openweathermap.org/api
 
 app.use(cors());
 
@@ -37,4 +37,4 @@ app.get("/search", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => console.log(`Backend running at http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`Backend running at http://0.0.0.0:${PORT}`));
