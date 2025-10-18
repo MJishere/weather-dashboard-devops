@@ -1,4 +1,6 @@
-# VPC creation  
+# ----------------------------
+# VPC creation
+# ----------------------------
 resource "aws_vpc" "main" {
   cidr_block = "10.0.0.0/16"
 
@@ -7,7 +9,9 @@ resource "aws_vpc" "main" {
   }
 }
 
-# Public Subnet creation
+# ----------------------------
+# Public Subnets
+# ----------------------------
 resource "aws_subnet" "public_subnets" {
   count             = length(var.public_subnet_cidr)
   vpc_id            = aws_vpc.main.id
@@ -21,7 +25,9 @@ resource "aws_subnet" "public_subnets" {
   depends_on = [aws_vpc.main]
 }
 
-# Private Subnet creation
+# ----------------------------
+# Private Subnets
+# ----------------------------
 resource "aws_subnet" "private_subnets" {
   count             = length(var.private_subnet_cidr)
   vpc_id            = aws_vpc.main.id
@@ -32,45 +38,49 @@ resource "aws_subnet" "private_subnets" {
     Name = "Private Subnet ${count.index + 1}"
   }
 
-  # ✅ FIX: ensures subnets delete only after NAT is gone
+  # ensures subnets delete only after NAT is gone
   depends_on = [aws_nat_gateway.ngw]
 }
 
-# Internet Gateway creation
+# ----------------------------
+# Internet Gateway
+# ----------------------------
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.main.id
 
   tags = {
     Name = "${var.project_name}_igw"
   }
-
-  depends_on = [
-    aws_route_table_association.public_subnet_association
-  ]
 }
 
-# Elastic IP for the NAT
+# ----------------------------
+# Elastic IP for NAT Gateway
+# ----------------------------
 resource "aws_eip" "nat_eip" {
   domain = "vpc"
 
   tags = {
-    Name = "${var.project_name}_P"
+    Name = "${var.project_name}_nat_eip"
   }
 }
 
-# NAT gateway for Private subnets
+# ----------------------------
+# NAT Gateway (in first public subnet)
+# ----------------------------
 resource "aws_nat_gateway" "ngw" {
   allocation_id = aws_eip.nat_eip.id
   subnet_id     = aws_subnet.public_subnets[0].id
 
   tags = {
-    Name = "gw NAT"
+    Name = "${var.project_name}_nat_gateway"
   }
 
   depends_on = [aws_internet_gateway.igw]
 }
 
-# Public subnet route table creation
+# ----------------------------
+# Public Route Table
+# ----------------------------
 resource "aws_route_table" "public_route_table" {
   vpc_id = aws_vpc.main.id
 
@@ -80,34 +90,44 @@ resource "aws_route_table" "public_route_table" {
   }
 
   tags = {
-    Name = "${var.project_name} Public Route table"
+    Name = "${var.project_name}_public_route_table"
   }
+
+  depends_on = [aws_internet_gateway.igw]
 }
 
-# Private subnet route table creation
+# ----------------------------
+# Private Route Table
+# ----------------------------
 resource "aws_route_table" "private_route_table" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name = "${var.project_name} Private Route table"
+    Name = "${var.project_name}_private_route_table"
   }
 }
 
-# Associate public subnet to Public route table
+# ----------------------------
+# Associate Public Subnets with Public Route Table
+# ----------------------------
 resource "aws_route_table_association" "public_subnet_association" {
   count          = length(var.public_subnet_cidr)
   subnet_id      = element(aws_subnet.public_subnets[*].id, count.index)
   route_table_id = aws_route_table.public_route_table.id
 }
 
-# Associate private subnet to Private route table
+# ----------------------------
+# Associate Private Subnets with Private Route Table
+# ----------------------------
 resource "aws_route_table_association" "private_subnet_association" {
   count          = length(var.private_subnet_cidr)
   subnet_id      = element(aws_subnet.private_subnets[*].id, count.index)
   route_table_id = aws_route_table.private_route_table.id
 }
 
-# Associate Nat to Private route table
+# ----------------------------
+# Private Route (through NAT)
+# ----------------------------
 resource "aws_route" "private_nat_route" {
   route_table_id         = aws_route_table.private_route_table.id
   destination_cidr_block = "0.0.0.0/0"
