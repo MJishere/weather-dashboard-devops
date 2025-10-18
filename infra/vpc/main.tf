@@ -22,7 +22,6 @@ resource "aws_subnet" "public_subnets" {
     Name = "Public Subnet ${count.index + 1}"
   }
 
-  depends_on = [aws_vpc.main]
 }
 
 # ----------------------------
