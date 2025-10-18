@@ -37,8 +37,6 @@ resource "aws_subnet" "private_subnets" {
     Name = "Private Subnet ${count.index + 1}"
   }
 
-  # ensures subnets delete only after NAT is gone
-  depends_on = [aws_nat_gateway.ngw]
 }
 
 # ----------------------------
@@ -92,7 +90,6 @@ resource "aws_route_table" "public_route_table" {
     Name = "${var.project_name}_public_route_table"
   }
 
-  depends_on = [aws_internet_gateway.igw]
 }
 
 # ----------------------------

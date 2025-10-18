@@ -43,8 +43,9 @@ resource "aws_eks_cluster" "eks_cluster"{
     }
 
     depends_on = [
-        aws_iam_role_policy_attachment.eks_cluster_policy,
-        aws_iam_role_policy_attachment.eks_vpc_controller
+      aws_iam_role_policy_attachment.eks_cluster_policy,
+      aws_iam_role_policy_attachment.eks_vpc_controller,
+      aws_iam_role_policy_attachment.eks_service_policy
     ]
 }
 
@@ -93,4 +94,6 @@ resource "aws_eks_node_group" "eks_node_group"{
     }
 
     instance_types = ["t3.medium"]
+
+    depends_on = [aws_eks_cluster.eks_cluster]
 }
