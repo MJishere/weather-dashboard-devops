@@ -39,6 +39,11 @@ CI/CD Phase( Jenkinsfile + Jenkinsfiles/)
         * Deploy the images to Kubernetes cluster
 
     3. Jenkinsfiles/Jenkinsfile.infra-destroy: Destroy infrastructure cleanly if needed
+
+## Architecture Diagram
+
+![Architecture Diagram](https://raw.githubusercontent.com/MJishere/weather-dashboard-devops/master/weather-dashboard-devops-architecture.png)
+
 ## Tech Stack
 
 | Category             | Tools/Services                                                                |
@@ -94,11 +99,6 @@ To run this project, you will need to add the following environment variables to
 `aws-devops-creds` AWS Credentials, also requires AWS credentials Plugin to be installed in the Jenkins server
 
 `OPENWEATHER_API_KEY` Openweather API key -> https://openweathermap.org/api
-
-
-## Architecture Diagram
-
-![Architecture Diagram](https://raw.githubusercontent.com/MJishere/weather-dashboard-devops/master/weather-dashboard-devops-architecture.png)
 
 
 ## Features
