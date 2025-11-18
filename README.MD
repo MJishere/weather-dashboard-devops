@@ -42,7 +42,7 @@ CI/CD Phase( Jenkinsfile + Jenkinsfiles/)
 
 ## Architecture Diagram
 
-![Architecture Diagram](https://raw.githubusercontent.com/MJishere/weather-dashboard-devops/master/weather-dashboard-devops-architecture.png)
+![Architecture Diagram](https://raw.githubusercontent.com/MJishere/weather-dashboard-devops/master/weather-dashboard-architecture.png)
 
 ## Tech Stack
 
